@@ -51,6 +51,17 @@ Stop:
 docker compose -f docker-compose.dev.yml down
 ```
 
+### Rebuild from scratch (fresh `node_modules`)
+
+The dev compose keeps `node_modules` in an anonymous volume so the host's copy doesn't shadow the image's. That volume is **not** recreated on a normal `up --build`, so if you bump deps (e.g. Prisma major), the container keeps using the stale copy. Use this when deps change or you hit weird version mismatches:
+
+```bash
+docker compose -f docker-compose.dev.yml build --no-cache && \
+docker compose -f docker-compose.dev.yml up -d --force-recreate --renew-anon-volumes
+```
+
+`--renew-anon-volumes` wipes only the anonymous `node_modules` volumes — the named `api-gateway-data` volume (SQLite DB) is preserved.
+
 ## Layout
 
 ```
