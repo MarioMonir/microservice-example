@@ -1,0 +1,54 @@
+name: mario-microservices
+
+services:
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+      target: dev
+    container_name: api-gateway
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: file:/data/todos.db
+    ports:
+      - "3000:3000"
+    volumes:
+      # Bind-mount source so host edits trigger container watcher.
+      - ./api-gateway:/app
+      # Anonymous volume keeps container's node_modules from being shadowed
+      # by the host's (which may be missing or for a different OS/arch).
+      - /app/node_modules
+      # Persisted SQLite DB file (named volume shared with prod).
+      - api-gateway-data:/data
+    networks:
+      - app-net
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      target: dev
+    container_name: client
+    environment:
+      NODE_ENV: development
+      # Vite reads PORT from env (matches client/.env).
+      PORT: 5179
+    ports:
+      - "5179:5179"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    depends_on:
+      - api-gateway
+    networks:
+      - app-net
+    restart: unless-stopped
+
+networks:
+  app-net:
+    driver: bridge
+
+volumes:
+  api-gateway-data:

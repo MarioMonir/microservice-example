@@ -1,0 +1,43 @@
+name: mario-microservices
+
+services:
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: file:/data/todos.db
+    ports:
+      - "3000:3000"
+    volumes:
+      - api-gateway-data:/data
+    networks:
+      - app-net
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      args:
+        # Baked in at build time — must be a URL reachable from the browser,
+        # so we use the host-published port of api-gateway, not its service name.
+        VITE_API_URL: http://localhost:3000
+    container_name: client
+    ports:
+      - "8080:8080"
+    depends_on:
+      - api-gateway
+    networks:
+      - app-net
+    restart: unless-stopped
+
+networks:
+  app-net:
+    driver: bridge
+
+volumes:
+  api-gateway-data:
